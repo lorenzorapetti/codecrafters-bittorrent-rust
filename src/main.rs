@@ -1,12 +1,16 @@
 use std::env;
 
-// Available if you need it!
-// use serde_bencode
-
 #[allow(dead_code)]
 fn decode_bencoded_value(encoded_value: &str) -> serde_json::Value {
     // If encoded_value starts with a digit, it's a number
-    if encoded_value.chars().next().unwrap().is_ascii_digit() {
+    if let Some(n) = encoded_value
+        .strip_prefix('i')
+        .and_then(|s| s.strip_suffix('e'))
+        .and_then(|s| s.parse::<i64>().ok())
+    {
+        // Example: "i42e" -> 42
+        serde_json::Value::Number(n.into())
+    } else if encoded_value.chars().next().unwrap().is_ascii_digit() {
         // Example: "5:hello" -> "hello"
         let colon_index = encoded_value.find(':').unwrap();
         let number_string = &encoded_value[..colon_index];
