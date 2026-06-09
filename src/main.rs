@@ -81,19 +81,6 @@ impl Torrent {
     }
 }
 
-impl std::fmt::Display for Torrent {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "Tracker URL: {}\nLength: {}\nInfo Hash: {}\nPiece Hashes:\n{}",
-            self.announce,
-            self.info.length,
-            self.info_hash(),
-            self.piece_hashes().join("\n")
-        )
-    }
-}
-
 #[derive(Parser, Debug)]
 #[command(version, about)]
 struct Cli {
@@ -120,7 +107,11 @@ fn main() -> anyhow::Result<()> {
         Commands::Info { torrent } => {
             let contents = std::fs::read(torrent)?;
             let torrent = decode_torrent(&contents);
-            println!("{}", torrent);
+            println!("Tracker URL: {}", torrent.announce);
+            println!("Length: {}", torrent.info.length);
+            println!("Info Hash: {}", torrent.info_hash());
+            println!("Piece Hashes:");
+            println!("{}", torrent.piece_hashes().join("\n"));
         }
     }
 
