@@ -19,9 +19,15 @@ fn decode(value: serde_bencode::value::Value) -> anyhow::Result<serde_json::Valu
                 .map(|item| decode(item))
                 .collect::<anyhow::Result<Vec<serde_json::Value>>>()?,
         )),
-        _ => {
-            panic!("Unhandled encoded value: {:?}", value)
-        }
+        serde_bencode::value::Value::Dict(d) => Ok(serde_json::Value::Object(
+            d.into_iter()
+                .map(|(key, item)| {
+                    let key = String::from_utf8(key)?;
+                    let value = decode(item)?;
+                    Ok((key, value))
+                })
+                .collect::<anyhow::Result<serde_json::Map<String, serde_json::Value>>>()?,
+        )),
     }
 }
 
