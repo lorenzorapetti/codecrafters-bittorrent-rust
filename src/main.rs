@@ -66,6 +66,18 @@ struct Torrent {
     info: TorrentInfo,
 }
 
+impl std::fmt::Display for Torrent {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "Tracker URL: {}\nLength: {}\nInfo Hash: {:x}",
+            self.announce,
+            self.info.length,
+            Sha1::digest(serde_bencode::to_bytes(&self.info).unwrap())
+        )
+    }
+}
+
 #[derive(Parser, Debug)]
 #[command(version, about)]
 struct Cli {
@@ -93,9 +105,7 @@ fn main() -> anyhow::Result<()> {
             let contents = std::fs::read(torrent)?;
             let torrent = decode_torrent(&contents);
             let info_hash = Sha1::digest(serde_bencode::to_bytes(&torrent.info)?);
-            println!("Tracker URL: {}", torrent.announce);
-            println!("Length: {}", torrent.info.length);
-            println!("Info Hash: {:x}", info_hash);
+            println!("{}", torrent);
         }
     }
 
