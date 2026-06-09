@@ -66,14 +66,30 @@ struct Torrent {
     info: TorrentInfo,
 }
 
+impl Torrent {
+    /// Computes the info hash of the torrent, which is a SHA-1 hash of the bencoded "info" dictionary.
+    /// The info hash is used to uniquely identify the torrent and is essential for peer-to-peer sharing.
+    fn info_hash(&self) -> String {
+        let info_bytes = serde_bencode::to_bytes(&self.info).expect("Failed to bencode info");
+        let hash = Sha1::digest(&info_bytes);
+        hex::encode(hash)
+    }
+
+    /// Encodes all the pieces into a readable SHA-1 hash array
+    fn piece_hashes(&self) -> Vec<String> {
+        self.info.pieces.chunks(20).map(hex::encode).collect()
+    }
+}
+
 impl std::fmt::Display for Torrent {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "Tracker URL: {}\nLength: {}\nInfo Hash: {:x}",
+            "Tracker URL: {}\nLength: {}\nInfo Hash: {}\nPiece Hashes:\n{}",
             self.announce,
             self.info.length,
-            Sha1::digest(serde_bencode::to_bytes(&self.info).unwrap())
+            self.info_hash(),
+            self.piece_hashes().join("\n")
         )
     }
 }
@@ -104,7 +120,6 @@ fn main() -> anyhow::Result<()> {
         Commands::Info { torrent } => {
             let contents = std::fs::read(torrent)?;
             let torrent = decode_torrent(&contents);
-            let info_hash = Sha1::digest(serde_bencode::to_bytes(&torrent.info)?);
             println!("{}", torrent);
         }
     }
