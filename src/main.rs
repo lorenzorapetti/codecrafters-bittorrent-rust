@@ -1,4 +1,9 @@
-use std::env;
+use std::path::PathBuf;
+
+use clap::{Parser, Subcommand};
+
+use serde::Deserialize;
+use serde_bytes::ByteBuf;
 
 fn decode_bencoded_value(encoded_value: &str) -> anyhow::Result<serde_json::Value> {
     let value: serde_bencode::value::Value = serde_bencode::from_str(encoded_value)
@@ -31,17 +36,65 @@ fn decode(value: serde_bencode::value::Value) -> anyhow::Result<serde_json::Valu
     }
 }
 
+#[allow(dead_code)]
+#[derive(Debug, Deserialize)]
+struct TorrentInfo {
+    /// Size of the file in bytes, for single-file torrents
+    length: u32,
+
+    /// Suggested name to save the file / directory as
+    name: String,
+
+    /// Number of bytes in each piece
+    #[serde(rename = "piece length")]
+    piece_length: i64,
+
+    /// Concatenated SHA-1 hashes of each piece
+    pieces: ByteBuf,
+}
+
+#[allow(dead_code)]
+#[derive(Debug, Deserialize)]
+struct Torrent {
+    /// URL to a "tracker", which is a central server that keeps track of peers
+    /// participating in the sharing of a torrent.
+    announce: String,
+
+    /// A dictionary containing information about the files in the torrent.
+    /// This is the main part of the torrent file and contains details about the files being shared,
+    /// such as their names, sizes, and how they are divided into pieces.
+    info: TorrentInfo,
+}
+
+#[derive(Parser, Debug)]
+#[command(version, about)]
+struct Cli {
+    #[command(subcommand)]
+    command: Commands,
+}
+
+#[derive(Subcommand, Debug)]
+enum Commands {
+    Decode { value: String },
+    Info { torrent: PathBuf },
+}
+
+fn decode_torrent(torrent: &[u8]) -> Torrent {
+    serde_bencode::from_bytes(torrent).unwrap_or_else(|e| panic!("Can't decode torrent: {:?}", e))
+}
+
 // Usage: your_program.sh decode "<encoded_value>"
 fn main() -> anyhow::Result<()> {
-    let args: Vec<String> = env::args().collect();
-    let command = &args[1];
+    let cli = Cli::parse();
 
-    if command == "decode" {
-        let encoded_value = &args[2];
-        let decoded_value = decode_bencoded_value(encoded_value)?;
-        println!("{}", decoded_value.to_string());
-    } else {
-        println!("unknown command: {}", args[1])
+    match cli.command {
+        Commands::Decode { value } => println!("{}", decode_bencoded_value(&value)?.to_string()),
+        Commands::Info { torrent } => {
+            let contents = std::fs::read(torrent)?;
+            let torrent = decode_torrent(&contents);
+            println!("Tracker URL: {}", torrent.announce);
+            println!("Length: {}", torrent.info.length);
+        }
     }
 
     Ok(())
