@@ -14,6 +14,7 @@ fn main() -> anyhow::Result<()> {
         Command::Decode(args) => args.run()?,
         Command::Info(args) => args.run()?,
         Command::Peers(args) => args.run()?,
+        Command::Handshake(args) => args.run()?,
     };
 
     Ok(())

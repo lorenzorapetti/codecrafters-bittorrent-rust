@@ -1,6 +1,8 @@
 use clap::{Parser, Subcommand};
 
-use crate::commands::{decode::DecodeArgs, info::InfoArgs, peers::PeersArgs};
+use crate::commands::{
+    decode::DecodeArgs, handshake::HandshakeArgs, info::InfoArgs, peers::PeersArgs,
+};
 
 #[derive(Parser, Debug)]
 #[command(version, about)]
@@ -14,4 +16,5 @@ pub enum Command {
     Decode(DecodeArgs),
     Info(InfoArgs),
     Peers(PeersArgs),
+    Handshake(HandshakeArgs),
 }
